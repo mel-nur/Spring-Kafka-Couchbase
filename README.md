@@ -1,4 +1,3 @@
-docker-compose up --build
 # StreamCart
 
 StreamCart, reaktif bir alışveriş-sepeti örnek uygulamasıdır. Bu proje, Spring WebFlux + Reactive Couchbase + Spring Kafka altyapısını kullanarak
@@ -69,4 +68,5 @@ PowerShell örneği:
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/carts/user123/items -Body (@{productId='p1';quantity=2} | ConvertTo-Json) -ContentType 'application/json'
 ```
+
 
