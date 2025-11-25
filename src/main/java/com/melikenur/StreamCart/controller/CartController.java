@@ -1,5 +1,6 @@
 package com.melikenur.StreamCart.controller;
 
+import com.melikenur.StreamCart.model.Cart;
 import com.melikenur.StreamCart.service.CartService;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -67,5 +68,14 @@ public class CartController {
         // Sipariş başlatma işlemini servise yönlendir
         return cartService.checkoutCart(userId)
             .thenReturn("Sipariş başlatıldı: " + userId + ". Stoklar kesinleştiriliyor.");
+    }
+
+    @DeleteMapping("/{userId}/items/{productId}")
+    public Mono<Cart> removeItem(@PathVariable String userId, 
+                                 @PathVariable String productId, 
+                                 @RequestParam int quantity) { // URL parametresiyle miktar alınır
+        
+        // removeItemFromCart, çıkarılan miktarı pozitif bekler (örneğin 3)
+        return cartService.removeItemFromCart(userId, productId, quantity);
     }
 }
