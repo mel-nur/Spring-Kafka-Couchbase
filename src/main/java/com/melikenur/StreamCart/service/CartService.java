@@ -121,6 +121,51 @@ public class CartService {
                 });
     }
 
-    // Çıkarma işlemi için benzer bir metot yazılabilir...
+    /**
+     * Sepetten ürün çıkartma veya miktarını azaltma işlemi.
+     * - Eğer miktar düşürüldüğünde 0 veya altına inerse ürün sepetten kaldırılır.
+     * - Sepet güncellendikten sonra ilgili Kafka olayı tetiklenir (negatif miktar gönderilir).
+     *
+     * @param userId Sepet sahibi
+     * @param productId Ürün ID
+     * @param quantity Çıkartılacak miktar (pozitif)
+     * @return Güncellenmiş `Cart` nesnesi
+     */
+    public Mono<Cart> removeItemFromCart(String userId, String productId, int quantity) {
+        if (quantity <= 0) {
+            return Mono.error(new IllegalArgumentException("Miktar pozitif olmalıdır."));
+        }
+
+        return getCartByUserId(userId)
+                .flatMap(cart -> {
+                    Optional<CartItem> existingItem = cart.getItems().stream()
+                            .filter(item -> item.getProductId().equals(productId))
+                            .findFirst();
+
+                    if (existingItem.isPresent()) {
+                        CartItem item = existingItem.get();
+                        int newQuantity = item.getQuantity() - quantity;
+
+                        if (newQuantity > 0) {
+                            item.setQuantity(newQuantity);
+                        } else {
+                            // Miktar 0 veya altına düştü: ürünü kaldır
+                            cart.getItems().remove(item);
+                        }
+
+                        cart.setLastUpdated(Instant.now().toEpochMilli());
+
+                        return cartRepository.save(cart)
+                                .doOnSuccess(savedCart -> {
+                                    // Olayda çıkarılan miktarı negatif olarak gönderiyoruz
+                                    eventProducer.sendCartUpdateEvent(new CartUpdateEvent(
+                                            userId, productId, -quantity, Instant.now()
+                                    ));
+                                });
+                    } else {
+                        return Mono.error(new RuntimeException("Ürün sepette bulunamadı: " + productId));
+                    }
+                });
+    }
 }
     
